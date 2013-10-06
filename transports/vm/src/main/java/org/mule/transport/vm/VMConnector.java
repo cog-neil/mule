@@ -26,9 +26,16 @@ import org.mule.transaction.XaTransaction;
 import org.mule.transport.AbstractConnector;
 import org.mule.util.queue.QueueManager;
 import org.mule.util.queue.QueueSession;
+import org.mule.util.xa.AbstractXAResourceManager;
 import org.mule.util.xa.XAResourceFactory;
 
 import java.util.Iterator;
+
+import javax.transaction.xa.XAResource;
+
+import bitronix.tm.BitronixTransactionManager;
+import bitronix.tm.recovery.RecoveryException;
+import bitronix.tm.resource.ResourceRegistrar;
 
 /**
  * <code>VMConnector</code> A simple endpoint wrapper to allow a Mule service to
@@ -44,6 +51,7 @@ public class VMConnector extends AbstractConnector
     /** The queue manager to use for vm queues only */
     private QueueManager queueManager;
     private static XAResourceFactory xaResourceFactory;
+    private VmXaResourceProducer vmXaResourceProducer;
 
     public VMConnector(MuleContext context)
     {
@@ -68,6 +76,18 @@ public class VMConnector extends AbstractConnector
             if (logger.isDebugEnabled())
             {
                 logger.debug("created default QueueProfile for VM connector: " + queueProfile);
+            }
+        }
+        if (muleContext.getTransactionManager() instanceof BitronixTransactionManager)
+        {
+            try
+            {
+                vmXaResourceProducer = new VmXaResourceProducer(getMuleContext().getConfiguration().getId() + "-" + getName(), (AbstractXAResourceManager) muleContext.getQueueManager());
+                ResourceRegistrar.register(vmXaResourceProducer);
+            }
+            catch (RecoveryException e)
+            {
+                throw new InitialisationException(e,this);
             }
         }
     }
@@ -165,6 +185,10 @@ public class VMConnector extends AbstractConnector
 //        }
 
         QueueSession session = queueManager.getQueueSession();
+        if (muleContext.getTransactionManager() instanceof BitronixTransactionManager)
+        {
+            vmXaResourceProducer.addXaResource((XAResource) session);
+        }
         if (tx != null)
         {
             //This get printed every second for every thread
@@ -267,7 +291,13 @@ public class VMConnector extends AbstractConnector
     @Override
     protected <T> T createOperationResource(ImmutableEndpoint endpoint) throws MuleException
     {
-        return (T) getQueueManager().getQueueSession();
+        T queueSession = (T) getQueueManager().getQueueSession();
+        Transaction transaction = TransactionCoordination.getInstance().getTransaction();
+        if (transaction != null && transaction.isXA() && muleContext.getTransactionManager() instanceof BitronixTransactionManager)
+        {
+            vmXaResourceProducer.addXaResource((XAResource) queueSession);
+        }
+        return queueSession;
     }
 
     @Override

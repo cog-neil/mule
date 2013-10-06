@@ -14,8 +14,6 @@
        http://www.mulesoft.org/schema/mule/jdbc http://www.mulesoft.org/schema/mule/jdbc/current/mule-jdbc.xsd
        http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/jbossts/current/mule-jbossts.xsd">
 
-    <!-- Beans for the JBoss transaction manager -->
-    <spring:bean id="muleTM" class="org.mule.config.spring.factories.MuleTransactionManagerFactoryBean"/>
 
     <!-- The database config is stored in derby.properties. Use a placeholder to configure all references -->
     <spring:bean id="property-placeholder" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
@@ -26,7 +24,6 @@
 
     <!-- Data Source -->
     <spring:bean id="jdbcDataSource" class="org.enhydra.jdbc.standard.StandardXADataSource" destroy-method="shutdown">
-        <spring:property name="transactionManager" ref="muleTM"/>
         <spring:property name="driverName" value="org.apache.derby.jdbc.EmbeddedDriver"/>
         <spring:property name="url" value="${database.connection}"/>
     </spring:bean>

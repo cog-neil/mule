@@ -37,9 +37,13 @@ import org.mule.transport.jms.jndi.JndiNameResolver;
 import org.mule.transport.jms.jndi.SimpleJndiNameResolver;
 import org.mule.transport.jms.redelivery.AutoDiscoveryRedeliveryHandlerFactory;
 import org.mule.transport.jms.redelivery.RedeliveryHandlerFactory;
+import org.mule.transport.jms.xa.BitronixConnectionFactoryWrapper;
+import org.mule.transport.jms.xa.BitronixJmsXaConnectionFactoryProvider;
 import org.mule.transport.jms.xa.ConnectionFactoryWrapper;
+import org.mule.transport.jms.xa.ConnectionInvocationHandler;
 import org.mule.util.BeanUtils;
 
+import java.lang.reflect.Proxy;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,6 +60,10 @@ import javax.jms.TemporaryTopic;
 import javax.jms.XAConnectionFactory;
 import javax.naming.CommunicationException;
 import javax.naming.NamingException;
+
+import bitronix.tm.BitronixTransactionManager;
+import bitronix.tm.resource.jms.DualSessionWrapper;
+import bitronix.tm.resource.jms.PoolingConnectionFactory;
 
 /**
  * <code>JmsConnector</code> is a JMS 1.0.2b compliant connector that can be used
@@ -245,8 +253,8 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
     /**
      * A factory method to create various JmsSupport class versions.
      *
-     * @return JmsSupport instance
      * @see JmsSupport
+     * @return JmsSupport instance
      */
     protected JmsSupport createJmsSupport()
     {
@@ -404,29 +412,17 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
                 throw new DefaultMuleException(JmsMessages.errorCreatingConnectionFactory(), ne);
             }
         }
+        connectionFactory = createConnectionFactoryWrapper(connectionFactory);
 
-        ConnectionFactory cf = this.connectionFactory;
         Connection connection;
-
-        try
-        {
-            if (cf instanceof XAConnectionFactory && muleContext.getTransactionManager() != null)
-            {
-                cf = new ConnectionFactoryWrapper(cf, sameRMOverrideValue);
-            }
-        }
-        catch (Exception e)
-        {
-            throw new InitialisationException(e, this);
-        }
 
         if (username != null)
         {
-            connection = jmsSupport.createConnection(cf, username, password);
+            connection = jmsSupport.createConnection(connectionFactory, username, password);
         }
         else
         {
-            connection = jmsSupport.createConnection(cf);
+            connection = jmsSupport.createConnection(connectionFactory);
         }
 
         if (connection != null)
@@ -441,10 +437,48 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
                 connection.setExceptionListener(this);
             }
         }
-
-
-
         return connection;
+    }
+
+    private ConnectionFactory createConnectionFactoryWrapper(ConnectionFactory connectionFactory) throws InitialisationException
+    {
+        ConnectionFactory wrappedConnectionFactory = connectionFactory;
+        if (connectionFactory instanceof PoolingConnectionFactory || connectionFactory instanceof ConnectionFactoryWrapper)
+        {
+            return connectionFactory;
+        }
+        try
+        {
+            if (connectionFactory instanceof XAConnectionFactory && muleContext.getTransactionManager() instanceof BitronixTransactionManager)
+            {
+                synchronized (BitronixJmsXaConnectionFactoryProvider.class)
+                {
+                    BitronixJmsXaConnectionFactoryProvider.xaConnectionFactoryThreadLocal  = connectionFactory;
+                    PoolingConnectionFactory poolingConnectionFactory = new PoolingConnectionFactory();
+                    poolingConnectionFactory.setClassName(BitronixJmsXaConnectionFactoryProvider.class.getCanonicalName());
+                    poolingConnectionFactory.setAutomaticEnlistingEnabled(true);
+                    poolingConnectionFactory.setMaxPoolSize(32);
+                    poolingConnectionFactory.setMaxIdleTime(16);
+                    poolingConnectionFactory.setCacheProducersConsumers(false);
+                    poolingConnectionFactory.setAllowLocalTransactions(true);
+                    poolingConnectionFactory.setUniqueName(muleContext.getConfiguration().getId() + "-" + getName());
+                    poolingConnectionFactory.init();
+                    wrappedConnectionFactory = new BitronixConnectionFactoryWrapper(poolingConnectionFactory);
+                }
+            }
+            else
+            {
+                if (connectionFactory instanceof XAConnectionFactory && muleContext.getTransactionManager() != null)
+                {
+                    wrappedConnectionFactory = new ConnectionFactoryWrapper(connectionFactory, sameRMOverrideValue);
+                }
+            }
+            return wrappedConnectionFactory;
+        }
+        catch (Exception e)
+        {
+            throw new InitialisationException(e, this);
+        }
     }
 
     @Override
@@ -508,12 +542,12 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
     @Override
     protected void doConnect() throws Exception
     {
-        connection = createConnection();
         if ((connectionFactoryProperties != null) && !connectionFactoryProperties.isEmpty())
         {
             // apply connection factory properties
             BeanUtils.populateWithoutFail(connectionFactory, connectionFactoryProperties, true);
         }
+        connection = createConnection();
         if (isStarted())
         {
             connection.start();

@@ -43,6 +43,10 @@
             <artifactId>xapool</artifactId>
             <version>${xaPoolVersion}-osgi</version>
         </dependency>
+        <dependency>
+            <groupId>org.codehaus.btm</groupId>
+            <artifactId>btm</artifactId>
+        </dependency>
 
         <!-- Unit tests -->
         <dependency>

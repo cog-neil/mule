@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:mule="http://www.mulesoft.org/schema/mule/core"
+      xmlns:tm="http://www.mulesoft.org/schema/mule/btm"
+      xsi:schemaLocation="
+       http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.2/mule.xsd
+       http://www.mulesoft.org/schema/mule/btm http://www.mulesoft.org/schema/mule/btm/3.2/mule-btm.xsd">
+
+    <tm:transaction-manager>
+        <property key="com.arjuna.ats.arjuna.coordinator.defaultTimeout" value="47" /><!-- this is in seconds -->
+        <property key="com.arjuna.ats.arjuna.coordinator.txReaperTimeout" value="108000"/><!-- this is in milliseconds -->
+    </tm:transaction-manager>
+
+</mule>
