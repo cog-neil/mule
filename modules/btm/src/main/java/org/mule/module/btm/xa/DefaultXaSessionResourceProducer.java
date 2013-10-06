@@ -1,4 +1,4 @@
-package org.mule.transport.vm;
+package org.mule.module.btm.xa;
 
 import org.mule.util.xa.AbstractXAResourceManager;
 import org.mule.util.xa.DefaultXASession;
@@ -21,7 +21,7 @@ import bitronix.tm.resource.common.XAResourceProducer;
 import bitronix.tm.resource.common.XAStatefulHolder;
 import bitronix.tm.utils.Scheduler;
 
-public class VmXaResourceProducer extends ResourceBean implements XAResourceProducer
+public class DefaultXaSessionResourceProducer extends ResourceBean implements XAResourceProducer
 {
 
     private final String uniqueName;
@@ -29,7 +29,7 @@ public class VmXaResourceProducer extends ResourceBean implements XAResourceProd
     private List<XAResource> xaResources = new ArrayList<XAResource>();
     private ReadWriteLock xaResourcesLock = new ReentrantReadWriteLock();
 
-    public VmXaResourceProducer(String uniqueName, AbstractXAResourceManager xaResourceManager)
+    public DefaultXaSessionResourceProducer(String uniqueName, AbstractXAResourceManager xaResourceManager)
     {
         this.uniqueName = uniqueName;
         this.xaResourceManager = xaResourceManager;
@@ -45,7 +45,7 @@ public class VmXaResourceProducer extends ResourceBean implements XAResourceProd
     @Override
     public XAResourceHolderState startRecovery() throws RecoveryException
     {
-        return new XAResourceHolderState(new VmXaResourceHolder(new DefaultXASession(xaResourceManager),this),this);
+        return new XAResourceHolderState(new DefaultXaSessionResourceHolder(new DefaultXASession(xaResourceManager),this),this);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class VmXaResourceProducer extends ResourceBean implements XAResourceProd
             {
                 if (resource == xaResource)
                 {
-                    return new VmXaResourceHolder(resource,this);
+                    return new DefaultXaSessionResourceHolder(resource,this);
                 }
             }
             return null;
@@ -102,7 +102,7 @@ public class VmXaResourceProducer extends ResourceBean implements XAResourceProd
         return null;
     }
 
-    public void addXaResource(XAResource session)
+    public void addDefaultXASession(XAResource session)
     {
         Lock lock = xaResourcesLock.writeLock();
         lock.lock();
@@ -115,4 +115,19 @@ public class VmXaResourceProducer extends ResourceBean implements XAResourceProd
             lock.unlock();
         }
     }
+
+    public void removeDefaultXASession(XAResource xaResource)
+    {
+        Lock lock = xaResourcesLock.writeLock();
+        lock.lock();
+        try
+        {
+            this.xaResources.remove(xaResource);
+        }
+        finally
+        {
+            lock.unlock();
+        }
+    }
 }
+

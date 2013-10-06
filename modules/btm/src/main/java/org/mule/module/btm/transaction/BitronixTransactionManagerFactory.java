@@ -11,7 +11,8 @@ import org.mule.api.config.MuleConfiguration;
 import org.mule.api.context.MuleContextAware;
 import org.mule.api.lifecycle.Disposable;
 import org.mule.api.transaction.TransactionManagerFactory;
-import org.mule.util.UUID;
+import org.mule.module.btm.xa.DefaultXaSessionResourceProducer;
+import org.mule.util.xa.AbstractXAResourceManager;
 
 import java.io.File;
 import java.util.HashMap;
@@ -21,14 +22,16 @@ import javax.transaction.TransactionManager;
 
 import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
+import bitronix.tm.resource.ResourceRegistrar;
 
 public class BitronixTransactionManagerFactory implements TransactionManagerFactory, Disposable, MuleContextAware
 {
 
     private Map<String, String> properties = new HashMap<String, String>();
 
-    private BitronixTransactionManager tm;
+    private TransactionManager tm;
     private MuleContext muleContext;
+    private DefaultXaSessionResourceProducer defaultXaSessionResourceProducer;
 
     public BitronixTransactionManagerFactory()
     {
@@ -36,15 +39,20 @@ public class BitronixTransactionManagerFactory implements TransactionManagerFact
 
     public synchronized TransactionManager create(MuleConfiguration config) throws Exception
     {
-        if (tm == null)
+        if (tm != null)
         {
-            String workingDirectory = muleContext.getConfiguration().getWorkingDirectory();
-            String part1Filename = workingDirectory + File.separator + "tx-log" + File.separator + TransactionManagerServices.getConfiguration().getLogPart1Filename();
-            String part2Filename = workingDirectory + File.separator + "tx-log" + File.separator + TransactionManagerServices.getConfiguration().getLogPart2Filename();
-            TransactionManagerServices.getConfiguration().setLogPart1Filename(part1Filename);
-            TransactionManagerServices.getConfiguration().setLogPart2Filename(part2Filename);
-            tm = TransactionManagerServices.getTransactionManager();
+            return tm;
         }
+        String workingDirectory = muleContext.getConfiguration().getWorkingDirectory();
+        String part1Filename = workingDirectory + File.separator + "tx-log" + File.separator + TransactionManagerServices.getConfiguration().getLogPart1Filename();
+        String part2Filename = workingDirectory + File.separator + "tx-log" + File.separator + TransactionManagerServices.getConfiguration().getLogPart2Filename();
+        TransactionManagerServices.getConfiguration().setLogPart1Filename(part1Filename);
+        TransactionManagerServices.getConfiguration().setLogPart2Filename(part2Filename);
+        tm = TransactionManagerServices.getTransactionManager();
+        String defaultXaSessionUniqueName = muleContext.getConfiguration().getId() + "-default-xa-session";
+        defaultXaSessionResourceProducer = new DefaultXaSessionResourceProducer(defaultXaSessionUniqueName, (AbstractXAResourceManager) muleContext.getQueueManager());
+        ResourceRegistrar.register(defaultXaSessionResourceProducer);
+        tm = new TransactionManagerWrapper(tm, defaultXaSessionResourceProducer);
         return tm;
     }
 
@@ -61,7 +69,6 @@ public class BitronixTransactionManagerFactory implements TransactionManagerFact
     @Override
     public void dispose()
     {
-        tm.shutdown();
         tm = null;
     }
 

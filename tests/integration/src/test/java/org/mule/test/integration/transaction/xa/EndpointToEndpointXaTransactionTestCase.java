@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import bitronix.tm.TransactionManagerServices;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -180,6 +181,12 @@ public class EndpointToEndpointXaTransactionTestCase extends FunctionalTestCase
         new TransactionScenarios(inboundMessagesCreator, outboundMessagesCounter)
                 .setVerificationTimeout(1000)
                 .testAlwaysFailureDuringFlowException();
+    }
+
+    @After
+    public void shutdownTransactionManager()
+    {
+        TransactionManagerServices.getTransactionManager().shutdown();
     }
 
     protected void doSetUpBeforeMuleContextCreation() throws Exception

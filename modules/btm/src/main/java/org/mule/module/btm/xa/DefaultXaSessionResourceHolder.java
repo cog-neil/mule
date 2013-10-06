@@ -1,4 +1,4 @@
-package org.mule.transport.vm;
+package org.mule.module.btm.xa;
 
 import java.util.Date;
 import java.util.List;
@@ -13,19 +13,16 @@ import bitronix.tm.resource.common.StateChangeListener;
 import bitronix.tm.resource.common.XAResourceHolder;
 import bitronix.tm.utils.Uid;
 
-/**
- *
- */
-public class VmXaResourceHolder implements XAResourceHolder
+public class DefaultXaSessionResourceHolder implements XAResourceHolder
 {
 
     private final XAResource xaResource;
-    private final ResourceBean resourceBean;
+    private final DefaultXaSessionResourceProducer defaultXaSessionResourceProducer;
 
-    public VmXaResourceHolder(XAResource xaResource, ResourceBean resourceBean)
+    public DefaultXaSessionResourceHolder(XAResource xaResource, DefaultXaSessionResourceProducer defaultXaSessionResourceProducer)
     {
         this.xaResource = xaResource;
-        this.resourceBean = resourceBean;
+        this.defaultXaSessionResourceProducer = defaultXaSessionResourceProducer;
     }
 
     @Override
@@ -59,7 +56,7 @@ public class VmXaResourceHolder implements XAResourceHolder
     @Override
     public ResourceBean getResourceBean()
     {
-        return resourceBean;
+        return defaultXaSessionResourceProducer;
     }
 
     @Override

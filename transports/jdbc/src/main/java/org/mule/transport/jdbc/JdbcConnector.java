@@ -48,7 +48,6 @@ import java.util.regex.Pattern;
 import javax.sql.DataSource;
 import javax.sql.XADataSource;
 
-import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.resource.jdbc.PoolingDataSource;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.ResultSetHandler;
@@ -120,7 +119,7 @@ public class JdbcConnector extends AbstractConnector implements Testable
         }
         if (dataSource instanceof XADataSource)
         {
-            if (muleContext.getTransactionManager() instanceof BitronixTransactionManager)
+            if (muleContext.getTransactionManager().getClass().getName().endsWith("TransactionManagerWrapper"))
             {
                 BitronixJdbcXaDataSourceProvider.xaDatasourceHolder = (XADataSource) dataSource;
                 PoolingDataSource poolingDataSource = new PoolingDataSource();

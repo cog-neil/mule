@@ -449,7 +449,7 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
         }
         try
         {
-            if (connectionFactory instanceof XAConnectionFactory && muleContext.getTransactionManager() instanceof BitronixTransactionManager)
+            if (connectionFactory instanceof XAConnectionFactory && muleContext.getTransactionManager().getClass().getName().endsWith("TransactionManagerWrapper"))
             {
                 synchronized (BitronixJmsXaConnectionFactoryProvider.class)
                 {
