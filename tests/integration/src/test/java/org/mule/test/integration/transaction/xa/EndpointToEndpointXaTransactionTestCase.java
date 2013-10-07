@@ -108,11 +108,11 @@ public class EndpointToEndpointXaTransactionTestCase extends FunctionalTestCase
                 {new String[] {"org/mule/test/integration/transaction/xa/xa-transaction-config.xml", //12
                         "org/mule/test/integration/transaction/xa/jdbc-to-jms-xa-transaction-config.xml",
                         "org/mule/test/integration/transaction/xa/bitronix-transaction-manager-config.xml"}, createDatabaseAndJmsBrokerSetUp,
-                        jdbcInboundMessageCreator, new QueueOutboundMessagesCounter()},
+                        jdbcInboundMessageCreator, JmsOutboundMessagesCounter.createVerifierForBroker(port1.getNumber())},
                 {new String[] {"org/mule/test/integration/transaction/xa/xa-transaction-config.xml", //13
                         "org/mule/test/integration/transaction/xa/jdbc-to-jms-xa-transaction-config.xml",
                         "org/mule/test/integration/transaction/xa/jboss-transaction-manager-config.xml"}, createDatabaseAndJmsBrokerSetUp,
-                        jdbcInboundMessageCreator, new QueueOutboundMessagesCounter()},
+                        jdbcInboundMessageCreator, JmsOutboundMessagesCounter.createVerifierForBroker(port1.getNumber())},
                 {new String[] {"org/mule/test/integration/transaction/xa/xa-transaction-config.xml", //14
                         "org/mule/test/integration/transaction/xa/jms-to-jdbc-xa-transaction-config.xml",
                         "org/mule/test/integration/transaction/xa/bitronix-transaction-manager-config.xml"}, createDatabaseAndJmsBrokerSetUp,
@@ -151,6 +151,7 @@ public class EndpointToEndpointXaTransactionTestCase extends FunctionalTestCase
     @Before
     public void injectMuleContext()
     {
+        TransactionManagerServices.getRecoverer().shutdown();
         if (inboundMessagesCreator instanceof MuleContextAware)
         {
             ((MuleContextAware) inboundMessagesCreator).setMuleContext(muleContext);

@@ -124,8 +124,9 @@ public class JdbcConnector extends AbstractConnector implements Testable
                 BitronixJdbcXaDataSourceProvider.xaDatasourceHolder = (XADataSource) dataSource;
                 PoolingDataSource poolingDataSource = new PoolingDataSource();
                 poolingDataSource.setClassName(BitronixJdbcXaDataSourceProvider.class.getCanonicalName());
-                poolingDataSource.setMaxPoolSize(2); //Test cases with derby and 4 as max pool size cause dead lock.
+                poolingDataSource.setMaxPoolSize(1000); //Test cases with derby and 4 as max pool size cause dead lock.
                 poolingDataSource.setAcquireIncrement(1);
+                poolingDataSource.setIgnoreRecoveryFailures(true);
                 poolingDataSource.setAllowLocalTransactions(true);
                 poolingDataSource.setAutomaticEnlistingEnabled(false);
                 poolingDataSource.setUniqueName(muleContext.getConfiguration().getId() + "-" + getName());

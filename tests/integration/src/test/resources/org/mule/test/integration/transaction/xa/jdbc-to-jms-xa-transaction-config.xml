@@ -38,7 +38,4 @@
         <xa-transaction action="ALWAYS_JOIN"/>
     </jms:endpoint>
 
-    <jms:endpoint name="outboundRequester" queue="out" connector-ref="jmsConnector2"/>
-
-
 </mule>

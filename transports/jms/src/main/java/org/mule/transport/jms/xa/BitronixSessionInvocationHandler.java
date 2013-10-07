@@ -88,7 +88,7 @@ public class BitronixSessionInvocationHandler implements TargetInvocationHandler
     @Override
     public boolean enlist() throws TransactionException
     {
-        /*Transaction tx = TransactionCoordination.getInstance().getTransaction();
+        Transaction tx = TransactionCoordination.getInstance().getTransaction();
         XAResource xaResource = sessionWrapper.getXAResource();
         //xaResource can be null if getSession wasn't invoke previously.
         if (xaResource == null)
@@ -103,16 +103,14 @@ public class BitronixSessionInvocationHandler implements TargetInvocationHandler
                 throw new TransactionException(e);
             }
         }
-        return ((XaTransaction)tx).enlistResource(sessionWrapper.getXAResource());*/
-        return true;
+        return ((XaTransaction)tx).enlistResource(sessionWrapper.getXAResource());
     }
 
     @Override
     public boolean delist() throws Exception
     {
-       /* Transaction tx = TransactionCoordination.getInstance().getTransaction();
-        return ((XaTransaction)tx).delistResource(sessionWrapper.getXAResource(),XAResource.TMSUCCESS);*/
-        return true;
+        Transaction tx = TransactionCoordination.getInstance().getTransaction();
+        return ((XaTransaction)tx).delistResource(sessionWrapper.getXAResource(),XAResource.TMSUCCESS);
     }
 
     @Override

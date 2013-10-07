@@ -456,11 +456,12 @@ public class JmsConnector extends AbstractConnector implements ExceptionListener
                     BitronixJmsXaConnectionFactoryProvider.xaConnectionFactoryThreadLocal  = connectionFactory;
                     PoolingConnectionFactory poolingConnectionFactory = new PoolingConnectionFactory();
                     poolingConnectionFactory.setClassName(BitronixJmsXaConnectionFactoryProvider.class.getCanonicalName());
-                    poolingConnectionFactory.setAutomaticEnlistingEnabled(true);
-                    poolingConnectionFactory.setMaxPoolSize(32);
-                    poolingConnectionFactory.setMaxIdleTime(16);
+                    poolingConnectionFactory.setAutomaticEnlistingEnabled(false);
+                    poolingConnectionFactory.setMaxPoolSize(1000);
+                    poolingConnectionFactory.setMaxIdleTime(1);
                     poolingConnectionFactory.setCacheProducersConsumers(false);
                     poolingConnectionFactory.setAllowLocalTransactions(true);
+                    poolingConnectionFactory.setIgnoreRecoveryFailures(true);
                     poolingConnectionFactory.setUniqueName(muleContext.getConfiguration().getId() + "-" + getName());
                     poolingConnectionFactory.init();
                     wrappedConnectionFactory = new BitronixConnectionFactoryWrapper(poolingConnectionFactory);
